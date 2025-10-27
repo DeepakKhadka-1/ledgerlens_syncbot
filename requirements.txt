@@ -1,0 +1,6 @@
+streamlit
+pandas
+python-dateutil
+openpyxl
+PyPDF2
+plotly
