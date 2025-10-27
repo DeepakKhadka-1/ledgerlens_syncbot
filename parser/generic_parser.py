@@ -33,4 +33,9 @@ def parse_generic_file(file_path):
         if col not in df.columns:
             df[col] = None
 
-    return df[column_map.values()]
+    df = df[list(column_map.values())]
+
+    # ✅ Deduplicate based on key transaction fields
+    df.drop_duplicates(subset=["Date", "Amount", "Sender", "Reference"], inplace=True)
+
+    return df

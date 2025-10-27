@@ -1,8 +1,3 @@
-import pdfplumber
-import pandas as pd
-import re
-from datetime import datetime
-
 def parse_sbi_pdf(pdf_path):
     transactions = []
 
@@ -43,24 +38,9 @@ def parse_sbi_pdf(pdf_path):
                         "Reference": extract_reference(details, ref)
                     })
 
-    return pd.DataFrame(transactions)
+    df = pd.DataFrame(transactions)
 
-def extract_sender(description):
-    """
-    Extracts sender name from UPI string like:
-    UPI/DR/566375293935/newtonda/IDIB/newtondanc/UPI
-    """
-    parts = description.split('/')
-    for i in range(len(parts)):
-        if re.match(r'\d{9,}', parts[i]):  # UPI reference number
-            if i + 1 < len(parts):
-                return parts[i + 1].strip()
-    return None
+    # ✅ Deduplicate based on key transaction fields
+    df.drop_duplicates(subset=["Date", "Amount", "Sender", "Reference"], inplace=True)
 
-def extract_reference(description, ref_field):
-    match = re.search(r'UPI/(CR|DR)/(\d+)', description)
-    if match:
-        return match.group(2)
-    elif ref_field and ref_field.strip().isdigit():
-        return ref_field.strip()
-    return None
+    return df
