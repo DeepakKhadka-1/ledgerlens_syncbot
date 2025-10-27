@@ -35,7 +35,11 @@ def parse_generic_file(file_path):
 
     df = df[list(column_map.values())]
 
-    # ✅ Deduplicate based on key transaction fields
-    df.drop_duplicates(subset=["Date", "Amount", "Sender", "Reference"], inplace=True)
+    # ✅ Normalize fields to catch hidden duplicates
+    df["Description"] = df["Description"].astype(str).str.strip().str.lower()
+    df["Sender"] = df["Sender"].astype(str).str.strip().str.upper()
+
+    # ✅ Deduplicate using expanded key
+    df.drop_duplicates(subset=["Date", "Amount", "Sender", "Reference", "Description"], inplace=True)
 
     return df

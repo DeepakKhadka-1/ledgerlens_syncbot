@@ -50,6 +50,11 @@ if uploaded_file:
         st.error(f"Parsing failed: {e}")
         st.stop()
 
+    # ✅ Normalize and deduplicate
+    df["Description"] = df["Description"].astype(str).str.strip().str.lower()
+    df["Sender"] = df["Sender"].astype(str).str.strip().str.upper()
+    df.drop_duplicates(subset=["Date", "Amount", "Sender", "Reference", "Description"], inplace=True)
+
     st.subheader("✅ Parsed Transactions")
     st.dataframe(df)
 
@@ -70,6 +75,12 @@ if selected_month:
     month_path = f"output/Bank_Statement_{selected_month}.xlsx"
     try:
         df = pd.read_excel(month_path)
+
+        # ✅ Normalize and deduplicate again
+        df["Description"] = df["Description"].astype(str).str.strip().str.lower()
+        df["Sender"] = df["Sender"].astype(str).str.strip().str.upper()
+        df.drop_duplicates(subset=["Date", "Amount", "Sender", "Reference", "Description"], inplace=True)
+
         st.subheader(f"📄 Transactions for {selected_month}")
         st.dataframe(df)
     except Exception as e:
