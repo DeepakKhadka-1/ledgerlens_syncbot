@@ -4,6 +4,7 @@ import os
 import glob
 from datetime import datetime
 import plotly.express as px
+from io import BytesIO
 
 from utils.detect_format import detect_file_format
 from parser.sbi_parser import parse_sbi_pdf
@@ -27,24 +28,21 @@ Welcome to **LedgerLens SyncBot** – your intelligent assistant for parsing and
 👨‍💻 Built by [Deepak Khadka](https://www.linkedin.com/in/deepak-khadka-78869a221) – passionate about data analytics, modular design, and recruiter-ready polish.
 """)
 
-
 # 📁 Upload section
 uploaded_file = st.file_uploader("📁 Upload a statement", type=["pdf", "csv", "xlsx"])
 
 if uploaded_file:
-    input_path = os.path.join("input", uploaded_file.name)
-    with open(input_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
+    file_bytes = BytesIO(uploaded_file.getbuffer())
     st.success(f"Uploaded: {uploaded_file.name}")
 
-    info = detect_file_format(input_path)
+    info = detect_file_format(uploaded_file.name)
     st.write("📄 Detected format:", info)
 
     try:
         if info['file_type'] == 'pdf':
-            df = parse_sbi_pdf(input_path)
+            df = parse_sbi_pdf(file_bytes)
         elif info['file_type'] in ['csv', 'excel']:
-            df = parse_generic_file(input_path)
+            df = parse_generic_file(file_bytes)
         else:
             st.error("Unsupported file format.")
             st.stop()
@@ -61,8 +59,6 @@ if uploaded_file:
     month_str = df['Date'].dt.strftime('%Y_%m').iloc[0]
     analyze_month(month_str)
     st.success(f"Monthly analysis complete for {month_str}")
-
-    os.remove(input_path)
 
 # 📅 Month selector
 st.markdown("### 📅 View Past Month")
