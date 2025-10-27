@@ -43,13 +43,18 @@ def parse_sbi_pdf(pdf_path):
                         "Reference": extract_reference(details, ref)
                     })
 
-    return pd.DataFrame(transactions)
+    df = pd.DataFrame(transactions)
+
+    # ✅ Normalize fields to catch hidden duplicates
+    df["Description"] = df["Description"].str.strip().str.lower()
+    df["Sender"] = df["Sender"].astype(str).str.strip().str.upper()
+
+    # ✅ Deduplicate using expanded key
+    df.drop_duplicates(subset=["Date", "Amount", "Sender", "Reference", "Description"], inplace=True)
+
+    return df
 
 def extract_sender(description):
-    """
-    Extracts sender name from UPI string like:
-    UPI/DR/566375293935/newtonda/IDIB/newtondanc/UPI
-    """
     parts = description.split('/')
     for i in range(len(parts)):
         if re.match(r'\d{9,}', parts[i]):  # UPI reference number

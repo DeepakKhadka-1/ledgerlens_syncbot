@@ -33,4 +33,13 @@ def parse_generic_file(file_path):
         if col not in df.columns:
             df[col] = None
 
-    return df[column_map.values()]
+    df = df[list(column_map.values())]
+
+    # ✅ Normalize fields to catch hidden duplicates
+    df["Description"] = df["Description"].astype(str).str.strip().str.lower()
+    df["Sender"] = df["Sender"].astype(str).str.strip().str.upper()
+
+    # ✅ Deduplicate using expanded key
+    df.drop_duplicates(subset=["Date", "Amount", "Sender", "Reference", "Description"], inplace=True)
+
+    return df
