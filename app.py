@@ -10,7 +10,7 @@ from utils.detect_format import detect_file_format
 from parser.sbi_parser import parse_sbi_pdf
 from parser.generic_parser import parse_generic_file
 from replicator.sheet_writer import write_to_sheets
-from analytics.monthly_analysis import analyze_month
+from analytics.generate_analysis import generate_fresh_analysis  # ✅ NEW
 
 st.set_page_config(page_title="LedgerLens SyncBot", layout="wide")
 st.title("📊 LedgerLens SyncBot")
@@ -61,8 +61,13 @@ if uploaded_file:
     write_to_sheets(df)
     st.success("Written to master and monthly sheets.")
 
+    # 🧼 Fresh analysis generation
     month_str = df['Date'].dt.strftime('%Y_%m').iloc[0]
-    analyze_month(month_str)
+    analysis_file = os.path.join("output", f"Analysis_{month_str}.xlsx")
+    if os.path.exists(analysis_file):
+        os.remove(analysis_file)
+
+    generate_fresh_analysis(df, month_str)
     st.success(f"Monthly analysis complete for {month_str}")
 
 # 📅 Month selector
@@ -76,7 +81,6 @@ if selected_month:
     try:
         df = pd.read_excel(month_path)
 
-        # ✅ Normalize and deduplicate again
         df["Description"] = df["Description"].astype(str).str.strip().str.lower()
         df["Sender"] = df["Sender"].astype(str).str.strip().str.upper()
         df.drop_duplicates(subset=["Date", "Amount", "Sender", "Reference", "Description"], inplace=True)
@@ -86,6 +90,17 @@ if selected_month:
     except Exception as e:
         st.error(f"Failed to load month: {e}")
         st.stop()
+
+    # 🔄 Manual Analysis Trigger
+    if st.button(f"🔄 Run Fresh Analysis for {selected_month}"):
+        try:
+            analysis_file = os.path.join("output", f"Analysis_{selected_month}.xlsx")
+            if os.path.exists(analysis_file):
+                os.remove(analysis_file)
+            generate_fresh_analysis(df, selected_month)
+            st.success(f"✅ Fresh analysis generated for {selected_month}")
+        except Exception as e:
+            st.error(f"Failed to generate analysis: {e}")
 
     # 🔍 Filters
     st.markdown("### 🔍 Filter Transactions")
@@ -140,8 +155,15 @@ if selected_month:
 
     # 📥 Downloads
     st.markdown("### 📥 Download Outputs")
+    if os.path.exists(month_path):
+        with open(month_path, "rb") as f:
+            st.download_button(f"Download {selected_month} Statement", f, file_name=f"Bank_Statement_{selected_month}.xlsx")
+    else:
+        st.warning(f"Statement file for {selected_month} not found.")
+
     analysis_file = os.path.join("output", f"Analysis_{selected_month}.xlsx")
-    with open(month_path, "rb") as f:
-        st.download_button(f"Download {selected_month} Statement", f, file_name=f"Bank_Statement_{selected_month}.xlsx")
-    with open(analysis_file, "rb") as f:
-        st.download_button(f"Download {selected_month} Analysis", f, file_name=f"Analysis_{selected_month}.xlsx")
+    if os.path.exists(analysis_file):
+        with open(analysis_file, "rb") as f:
+            st.download_button(f"Download {selected_month} Analysis", f, file_name=f"Analysis_{selected_month}.xlsx")
+    else:
+        st.warning(f"Analysis file for {selected_month} not found.")
